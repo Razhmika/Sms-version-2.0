@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stock Management — Static</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="app">
+    <main>
+      <section id="login-section">
+        <h1>Login</h1>
+        <form id="login-form">
+          <label>Username<input id="username" required /></label>
+          <label>Password<input id="password" type="password" required /></label>
+          <button type="submit">Login</button>
+        </form>
+        <div id="login-msg" class="muted"></div>
+      </section>
+
+      <section id="dashboard-section" class="hidden">
+        <header>
+          <h2>Dashboard</h2>
+          <button id="logout">Logout</button>
+        </header>
+        <div id="user-info" class="muted"></div>
+        <h3>Materials</h3>
+        <ul id="materials-list"></ul>
+
+        <h3>Vendors</h3>
+        <ul id="vendors-list"></ul>
+
+        <h3>Orders</h3>
+        <ul id="orders-list"></ul>
+      </section>
+    </main>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

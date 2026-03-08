@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  @apply bg-slate-50 text-slate-900;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+}
+
+/* Glassmorphism Classes */
+.glass {
+  @apply bg-white/70 backdrop-blur-lg border border-white/20;
+}
+
+.glass-dark {
+  @apply bg-slate-900/80 backdrop-blur-xl border border-white/10;
+}
+
+/* Animations */
+@keyframes bounce-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 3s infinite ease-in-out;
+}
+
+/* Table Row Hover State */
+tr:hover td {
+  @apply text-slate-900 transition-colors;
+}
+
+/* Input Styles */
+input, select, textarea {
+  @apply transition-all duration-200;
+}
+
+/* Button Pulse */
+.pulse-indigo {
+  box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4);
+  animation: pulse-indigo 2s infinite;
+}
+
+@keyframes pulse-indigo {
+  0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+}
+
+/* Shadow utilities for different colors */
+.shadow-blue-500\/10 { box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.1), 0 8px 10px -6px rgba(59, 130, 246, 0.1); }
+.shadow-amber-500\/10 { box-shadow: 0 20px 25px -5px rgba(245, 158, 11, 0.1), 0 8px 10px -6px rgba(245, 158, 11, 0.1); }
+.shadow-indigo-500\/10 { box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.1), 0 8px 10px -6px rgba(99, 102, 241, 0.1); }

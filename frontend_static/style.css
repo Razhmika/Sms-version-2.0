@@ -1,0 +1,11 @@
+*{box-sizing:border-box;font-family:Segoe UI,Arial,sans-serif}
+body{margin:0;background:#f6f8fb;color:#111}
+main{max-width:900px;margin:40px auto;padding:24px;background:#fff;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+.hidden{display:none}
+label{display:block;margin:8px 0}
+input{padding:8px;width:100%;margin-top:4px}
+button{padding:8px 12px;margin-top:8px}
+header{display:flex;justify-content:space-between;align-items:center}
+.muted{color:#666;font-size:0.95rem}
+ul{list-style:none;padding-left:0}
+li{padding:6px 0;border-bottom:1px solid #eee}
