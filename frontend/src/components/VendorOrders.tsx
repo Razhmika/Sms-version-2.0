@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { VendorOrder, VendorAccount, User, UserRole, OrderStatus, Material } from '../types';
 import { ICONS } from '../constants';
+import emailjs from '@emailjs/browser';
 
 interface VendorOrdersProps {
     orders: VendorOrder[];
@@ -62,6 +63,30 @@ const VendorOrders: React.FC<VendorOrdersProps> = ({ orders, vendors, materials,
             vendorName: selectedVendor.companyName,
             requestedBy: currentUser.username,
         });
+
+        // Use EmailJS to send order details to vendor
+        try {
+            emailjs.send(
+                'service_yo9pavf', // Service ID for sending order details
+                'template_fhpgflo', // Template ID provided by user
+                {
+                    to_email: selectedVendor.email,
+                    vendor_name: selectedVendor.vendorName || selectedVendor.companyName,
+                    material_type: materialType,
+                    quantity: quantity,
+                    status: status,
+                    requested_by: currentUser.username
+                },
+                'IxFEYc5WO3Ok8sAzA'
+            ).then(() => {
+                console.log('Order email queued via EmailJS');
+            }).catch(emailErr => {
+                console.error("Failed to send order email via EmailJS:", emailErr);
+            });
+        } catch (err) {
+            console.error("Error initiating emailJS:", err);
+        }
+
         setMaterialType(''); setQty(''); setSelectedMaterialId('');
         setOrderSuccess(true);
         setTimeout(() => setOrderSuccess(false), 3000);

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { VendorAccount } from '../types';
 import { api } from '../api';
+import emailjs from '@emailjs/browser';
 
 interface CreateVendorProps {
     vendors: VendorAccount[];
@@ -56,7 +57,25 @@ const CreateVendor: React.FC<CreateVendorProps> = ({ vendors, onCreate, onDelete
         try {
             if (!otpSent) {
                 // Step 1: Send OTP
-                await api.sendVendorOtp(form.email);
+                const res = await api.sendVendorOtp(form.email);
+
+                // Use EmailJS to send OTP
+                try {
+                    await emailjs.send(
+                        'service_07qr727', // Service ID for OTP
+                        'template_uamz94h', // Template ID for OTP
+                        {
+                            to_email: form.email,
+                            company_name: form.companyName,
+                            otp: res.otp
+                        },
+                        'IxFEYc5WO3Ok8sAzA'
+                    );
+                    console.log('OTP email queued via EmailJS');
+                } catch (emailErr) {
+                    console.error("Failed to send OTP via EmailJS:", emailErr);
+                }
+
                 setOtpSent(true);
                 setOtpError('');
             } else {

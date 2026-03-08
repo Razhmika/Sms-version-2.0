@@ -10,8 +10,8 @@ import smtplib
 from pydantic import BaseModel
 from email.message import EmailMessage
 
-from backend import models, schemas, database, gemini_service
-from backend.database import engine, get_db
+import models, schemas, database, gemini_service
+from database import engine, get_db
 from sqlalchemy import text
 
 models.Base.metadata.create_all(bind=engine)
@@ -146,7 +146,7 @@ def send_vendor_otp(req: OTPRequest):
         except Exception:
             pass
         
-    return {"message": "OTP sent successfully"}
+    return {"message": "OTP sent successfully", "otp": otp}
 
 @app.post("/vendors/verify-otp")
 def verify_vendor_otp(req: OTPVerify):
