@@ -48,11 +48,11 @@ export const api = {
         });
         return res.json();
     },
-    async sendVendorOtp(email: string) {
+    async sendVendorOtp(email: string, companyName: string) {
         const res = await fetch(`${API_BASE_URL}/vendors/send-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email }),
+            body: JSON.stringify({ email, company_name: companyName }),
         });
         if (!res.ok) throw new Error(await res.text());
         return res.json();

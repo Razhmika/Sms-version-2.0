@@ -6,9 +6,8 @@ from typing import List
 import datetime
 import os
 import random
-import smtplib
+import requests
 from pydantic import BaseModel
-from email.message import EmailMessage
 
 import models, schemas, database, gemini_service
 from database import engine, get_db
@@ -107,46 +106,74 @@ OTP_STORE = {}
 
 class OTPRequest(BaseModel):
     email: str
+    company_name: str = "Valued Vendor"
 
 class OTPVerify(BaseModel):
     email: str
     otp: str
 
+# EmailJS Configuration
+EMAILJS_PUBLIC_KEY = "IxFEYc5WO3Ok8sAzA"
+# OTP Template
+EMAILJS_OTP_SERVICE_ID = "service_07qr727"
+EMAILJS_OTP_TEMPLATE_ID = "template_uamz94h"
+# Order Template
+EMAILJS_ORDER_SERVICE_ID = "service_yo9pavf"
+EMAILJS_ORDER_TEMPLATE_ID = "template_fhpgflo"
+
 @app.post("/vendors/send-otp")
-def send_vendor_otp(req: OTPRequest):
+async def send_vendor_otp(req: OTPRequest):
     otp = str(random.randint(100000, 999999))
     expires = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
     OTP_STORE[req.email] = {"otp": otp, "expires": expires}
     
-    sender_email = os.environ.get("SMTP_EMAIL") # e.g., yourgmail@gmail.com
-    sender_password = os.environ.get("SMTP_PASSWORD") # e.g., 16-digit App Password
+    # Try sending via EmailJS REST API
+    print(f"--- ATTEMPTING TO SEND OTP ---")
+    print(f"To Email: {req.email}")
+    print(f"Company: {req.company_name}")
+    print(f"OTP: {otp}")
     
-    if sender_email and sender_password:
-        try:
-            msg = EmailMessage()
-            msg['Subject'] = 'Your Vendor Registration OTP'
-            msg['From'] = f"Stock Management <{sender_email}>"
-            msg['To'] = req.email
-            msg.set_content(f"Hello,\n\nYour verification code for Vendor Registration is: {otp}\n\nThis code will expire in 5 minutes.")
-            
-            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-                server.login(sender_email, sender_password)
-                server.send_message(msg)
-            print(f"\n[{datetime.datetime.now()}] REAL EMAIL SENT to {req.email}\n")
-        except Exception as e:
-            print(f"Failed to send real email: {e}")
-            print(f"\n[{datetime.datetime.now()}] FALLBACK MOCK EMAIL: OTP for {req.email} is {otp}\n")
-    else:
-        # Fallback for local development when no email credentials are set
-        dev_msg = f"\n{'='*50}\n[{datetime.datetime.now()}] MOCK EMAIL (DEV MODE)\nTO: {req.email}\nOTP: {otp}\n{'='*50}\n"
+    payload = {
+        "service_id": EMAILJS_OTP_SERVICE_ID,
+        "template_id": EMAILJS_OTP_TEMPLATE_ID,
+        "user_id": EMAILJS_PUBLIC_KEY,
+        "template_params": {
+            "to_email": req.email,
+            "receiver_email": req.email,
+            "company_name": req.company_name,
+            "otp": otp
+        }
+    }
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Origin": "http://localhost:5173",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    
+    try:
+        response = requests.post(
+            "https://api.emailjs.com/api/v1.0/email/send",
+            json=payload,
+            headers=headers
+        )
+        if response.status_code == 200:
+            print(f"\n[{datetime.datetime.now()}] EMAIL SENT via EmailJS to {req.email}\n")
+        else:
+            print(f"EmailJS error: {response.text}")
+            raise Exception(f"EmailJS failed with status {response.status_code}")
+    except Exception as e:
+        print(f"Failed to send via EmailJS: {e}")
+        # Fallback to local file logging
+        dev_msg = f"\n{'='*50}\n[{datetime.datetime.now()}] FALLBACK MOCK EMAIL (DEV MODE)\nTO: {req.email}\nOTP: {otp}\n{'='*50}\n"
         print(dev_msg)
         try:
-            with open("otp.txt", "w") as f:
-                f.write(f"EMAIL: {req.email}\nOTP: {otp}\nGenerated at: {datetime.datetime.now()}")
+            with open("otp.txt", "a") as f:
+                f.write(f"\nEMAIL: {req.email}\nOTP: {otp}\nGenerated at: {datetime.datetime.now()}\n")
         except Exception:
             pass
         
-    return {"message": "OTP sent successfully", "otp": otp}
+    return {"message": "OTP sent successfully"}
 
 @app.post("/vendors/verify-otp")
 def verify_vendor_otp(req: OTPVerify):
@@ -197,12 +224,50 @@ def get_orders(db: Session = Depends(get_db)):
 def create_order(order: schemas.VendorOrderCreate, db: Session = Depends(get_db)):
     # Business Rule: Admin status defaults to 'Booked', others to 'Requested'
     new_order = models.VendorOrder(**order.dict())
-    
-    # We could check role here if we had a token, but for now we'll trust the requested status 
-    # as the frontend handles the initial logic, but we'll enforce it:
     db.add(new_order)
     db.commit()
     db.refresh(new_order)
+
+    # Optional: Send notification to Vendor via EmailJS
+    # We need the vendor's email. We can fetch it based on vendorName.
+    vendor = db.query(models.VendorAccount).filter(models.VendorAccount.companyName == order.vendorName).first()
+    if vendor and vendor.email:
+        print(f"--- ATTEMPTING TO SEND ORDER NOTIFICATION ---")
+        print(f"To Email: {vendor.email}")
+        print(f"Vendor: {vendor.companyName}")
+        
+        email_payload = {
+            "service_id": EMAILJS_ORDER_SERVICE_ID,
+            "template_id": EMAILJS_ORDER_TEMPLATE_ID,
+            "user_id": EMAILJS_PUBLIC_KEY,
+            "template_params": {
+                "to_email": vendor.email,
+                "receiver_email": vendor.email,
+                "vendor_name": vendor.vendorName or vendor.companyName,
+                "material_type": order.materialType,
+                "quantity": order.quantity,
+                "status": order.status,
+                "requested_by": order.requestedBy
+            }
+        }
+        try:
+            headers = {
+                "Content-Type": "application/json",
+                "Origin": "http://localhost:5173",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            order_res = requests.post(
+                "https://api.emailjs.com/api/v1.0/email/send", 
+                json=email_payload,
+                headers=headers
+            )
+            if order_res.status_code != 200:
+                print(f"Failed to send order email: {order_res.text}")
+            else:
+                print(f"Order email sent successfully to {vendor.email}")
+        except Exception as e:
+            print(f"Failed to send order email: {e}")
+
     return new_order
 
 @app.patch("/orders/{order_id}/status", response_model=schemas.VendorOrderResponse)
